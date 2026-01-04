@@ -59,7 +59,7 @@ const userSchema = mongoose.Schema({
     },
     photo : {
         type : String,
-        default : "This is the URL of the image",
+        default : "https://tse1.mm.bing.net/th/id/OIP.PerzV5exJnL_r9J-ZDFY4QHaI4?pid=Api&P=0&h=180",
         validate(value){
             if(!validator.isURL(value)){
                 throw new Error("Please enter correct URL");

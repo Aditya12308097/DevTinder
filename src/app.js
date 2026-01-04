@@ -2,6 +2,10 @@ const express = require('express');
 
 const connectDB = require("./config/database");
 const User = require("./Models/userModel");
+const {validateSignupData} = require("./utils/validation")
+const bcrypt = require("bcrypt");
+const validator = require("validator");
+
 const app = express();
 app.use(express.json());
 // app.delete("/user",async (req,res)=>{
@@ -80,22 +84,47 @@ app.get("/feed", async (req,res)=>{
 //         res.status(400).send("Something went wrong : "+ err.message);
 //     }
 // })
-app.post("/user", async (req, res) => {
+
+app.post("/login",async (req,res)=>{
+    try{
+        const {emailId,password} = req.body;
+        if(!validator.isEmail(emailId)){
+            throw new Error("Please, enter correct emailId");
+        }
+        const user = await User.findOne({emailId : emailId});
+        if(!user){
+            throw new Error("Invalid credentials");
+        }
+        const isValidPassword = await bcrypt.compare(password,user.password);
+        if(isValidPassword){
+            res.status(201).send("Login Succesfull");
+        }else{
+            throw new Error("Invalid credentials");
+        }
+    }catch(err){
+        res.status(400).send("Error: "+ err.message);
+    }
+})
+
+app.post("/signup", async (req, res) => {
     // console.log(req.body);
     try{
-        const email = req.body.emailId;
-        const userExist = await User.findOne({emailId : email});
-        if(userExist){
-            throw new Error("User Exists, try with different Email Id ");
-        }
-        if(req.body.skills.length > 10){
-            throw new Error("Can't store too much skills");
-        }
-        const user = new User(req.body);
+        //validate the data
+        validateSignupData(req);
+        //now encrypt the password
+        const {firstName, lastName , emailId , password} = req.body;
+        const passwordHash = await bcrypt.hash(password,10);
+        // save the data to the database
+        const user = new User({
+            firstName,
+            lastName,
+            emailId,
+            password : passwordHash
+        });
         await user.save();//this command will save the data inside the User collection
         res.send("User data successfully saved into database");
     }catch(err){
-        res.status(400).send("Something went wrong : "+ err.message);
+        res.status(400).send("Error: "+ err.message);
     }
   
 });
